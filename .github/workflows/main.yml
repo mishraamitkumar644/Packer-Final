@@ -55,10 +55,10 @@ jobs:
         run: terraform apply -auto-approve
 
 # =====================================================
-# IMAGE DEFINITIONS
+# IMAGE definition
 # =====================================================
 
-  image-definitions:
+  image-definition:
 
     needs: foundation
 
@@ -95,7 +95,7 @@ jobs:
 
   detect-images:
 
-    needs: image-definitions
+    needs: image-definition
 
     runs-on: ubuntu-latest
 
