@@ -1,10 +1,10 @@
-# If RG already exists
-data "azurerm_resource_group" "rg" {
-  name = var.resource_group_name
-}
-  
+# resource group
 resource "azurerm_resource_group" "rg" {
  count = var.create_rg ? 1 : 0
   name     = var.resource_group_name
   location = var.location
+}
+# If RG already exists
+data "azurerm_resource_group" "rg" {
+  name = var.resource_group_name
 }
