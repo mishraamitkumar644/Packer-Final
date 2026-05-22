@@ -7,6 +7,11 @@ variable "location" {
 }
 
 variable "resource_group_name" {
+  type    = bool
+  default = false
+}
+
+variable "resource_group_name" {
   type = string
 }
 
