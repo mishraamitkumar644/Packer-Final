@@ -6,7 +6,7 @@ variable "location" {
   type = string
 }
 
-variable "resource_group_name" {
+variable "create_rg" {
   type    = bool
   default = false
 }
