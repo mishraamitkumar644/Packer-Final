@@ -1,12 +1,12 @@
+
 locals {
-  rg_name = coalesce(
-    try(azurerm_resource_group.rg[0].name, null),
-    try(data.azurerm_resource_group.rg[0].name, null)
+  rg_name = (
+    length(azurerm_resource_group.rg) > 0 ? azurerm_resource_group.rg[0].name : data.azurerm_resource_group.rg.name
   )
 
-  rg_location = coalesce(
-    try(azurerm_resource_group.rg[0].location, null),
-    try(data.azurerm_resource_group.rg[0].location, null)
+  rg_location = (
+    length(azurerm_resource_group.rg) > 0 ? azurerm_resource_group.rg[0].location : data.azurerm_resource_group.rg.location
   )
 }
+
 
