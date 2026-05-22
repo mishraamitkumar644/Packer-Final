@@ -2,13 +2,13 @@ name: Enterprise Platform Pipeline
 
 on:
 
-  # push: 
+  push: 
 
-  #   branches:
-  #     - main
-  #   paths:
-  #     - 'terraform/**'
-  #     - 'packer/**'
+    branches:
+      - main
+    paths:
+      - 'terraform/**'
+      - 'packer/**'
 
   workflow_dispatch:
 
