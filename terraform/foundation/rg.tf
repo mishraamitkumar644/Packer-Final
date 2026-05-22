@@ -1,7 +1,5 @@
 # If RG already exists
 data "azurerm_resource_group" "rg" {
-  count = var.create_rg ? 0 : 1
-
   name = var.resource_group_name
 }
   
