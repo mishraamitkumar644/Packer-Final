@@ -1,5 +1,12 @@
 locals {
-  rg_name = var.create_rg ? azurerm_resource_group.rg[0].name : data.azurerm_resource_group.rg.name
+  rg_name = coalesce(
+    try(azurerm_resource_group.rg[0].name, null),
+    try(data.azurerm_resource_group.rg[0].name, null)
+  )
 
-  rg_location = var.create_rg ? azurerm_resource_group.rg[0].location : data.azurerm_resource_group.rg.location
+  rg_location = coalesce(
+    try(azurerm_resource_group.rg[0].location, null),
+    try(data.azurerm_resource_group.rg[0].location, null)
+  )
 }
+
