@@ -1,0 +1,201 @@
+name: Enterprise Platform Pipeline
+
+on:
+
+  push:
+
+    branches:
+      - main
+
+    paths:
+      - 'terraform/**'
+      - 'packer/**'
+
+  workflow_dispatch:
+
+permissions:
+
+  id-token: write
+
+  contents: read
+
+jobs:
+
+# =====================================================
+# FOUNDATION
+# =====================================================
+
+  foundation:
+
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: terraform/foundation
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
+
+# =====================================================
+# IMAGE DEFINITIONS
+# =====================================================
+
+  image-definitions:
+
+    needs: foundation
+
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: terraform/image-definitions
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
+
+# =====================================================
+# DETECT CHANGED IMAGES
+# =====================================================
+
+  detect-images:
+
+    needs: image-definitions
+
+    runs-on: ubuntu-latest
+
+    outputs:
+      matrix: ${{ steps.changed.outputs.matrix }}
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detect Changed Images
+        id: changed
+
+        run: |
+
+          dirs=$(git diff --name-only HEAD~1 HEAD \
+            | grep '^packer/' \
+            | cut -d'/' -f1-3 \
+            | sort -u \
+            | jq -R -s -c 'split("\n")[:-1]')
+
+          echo "matrix={\"dir\":$dirs}" >> $GITHUB_OUTPUT
+
+# =====================================================
+# PACKER BUILD
+# =====================================================
+
+  packer-build:
+
+    needs: detect-images
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix: ${{ fromJson(needs.detect-images.outputs.matrix) }}
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Setup Packer
+        uses: hashicorp/setup-packer@main
+
+      - name: Packer Init
+        run: |
+          cd ${{ matrix.dir }}
+          packer init .
+
+      - name: Packer Validate
+        run: |
+          cd ${{ matrix.dir }}
+          packer validate .
+
+      - name: Packer Build
+        run: |
+          cd ${{ matrix.dir }}
+          packer build .
+
+# =====================================================
+# VM DEPLOYMENT
+# =====================================================
+
+  vm:
+
+    needs: packer-build
+
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: terraform/vm
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
